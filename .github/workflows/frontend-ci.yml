@@ -1,0 +1,45 @@
+name: Frontend CI (Flutter)
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - "frontend/**"
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - "frontend/**"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: "zulu"
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.19.x"
+          channel: "stable"
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          flutter pub get
+
+      - name: Run Flutter Analyze
+        run: |
+          cd frontend
+          flutter analyze
+
+      - name: Run Flutter Test
+        run: |
+          cd frontend
+          flutter test --coverage

@@ -1,255 +1,234 @@
-# QUY TRÌNH PHÁT TRIỂN & HƯỚNG DẪN LÀM VIỆC VỚI AI (DEVELOPMENT GUIDELINES)
-## DỰ ÁN: LEOPARD — KẾT NỐI VẬN TẢI HÀNG HÓA TRỌNG TẢI LỚN
+# DEVELOPMENT GUIDELINES: WORKFLOW, CODE LAYOUT & TASK ALLOCATION
+## DỰ ÁN: LEOPARD - HỆ THỐNG KẾT NỐI VẬN TẢI HÀNG HÓA TRỌNG TẢI LỚN
 
 | Field | Value |
 |---|---|
-| **Tên tài liệu** | Development Guidelines & AI Workflow |
+| **Tên tài liệu** | Hướng dẫn Phát triển, Cấu trúc Code & Phân chia Nhiệm vụ |
 | **Dự án** | LEOPARD APP |
 | **Phiên bản** | 1.0 |
-| **Ngày** | 2026-06-15 |
+| **Ngày tạo** | 2026-06-15 |
 | **Tác giả** | Tech Lead Team LEOPARD |
+| **Trạng thái** | Approved |
 
 ---
 
-## 1. NGUYÊN TẮC LÀM VIỆC CHUNG (GOLDEN RULES)
+## 1. PHÂN CHIA NHIỆM VỤ CHI TIẾT (TASK ALLOCATION MATRIX)
 
-### 1.1. Phân chia công việc — 2 người + AI Agent
+Để dự án 2 người chạy mượt mà, công việc được tách biệt hoàn toàn theo lớp kiến trúc (Frontend vs Backend/AI). Dưới đây là bảng phân bổ chi tiết qua 5 giai đoạn phát triển (13 tuần) từ 15/06/2026 đến 15/09/2026:
 
-| Vai trò | AI Agent | Dev 1 (Flutter + API integration) | Dev 2 (Backend + AI/ML + DevOps) |
+### 1.1. Bảng phân chia vai trò chính
+- **Dev A (Backend & AI/ML Specialist):** Chịu trách nhiệm thiết kế database, viết REST API, tích hợp Redis, viết các logic AI dự báo ETA (XGBoost), tích hợp Google OR-Tools (VRP), deploy Docker-compose và VPS.
+- **Dev B (Frontend & Mobile/Web Developer):** Chịu trách nhiệm thiết kế Flutter UI/UX, tích hợp Firebase Client (Auth, FCM), tích hợp Vietmap Flutter SDK, xử lý logic offline cache, kết nối HTTP/WebSocket API từ Dev A, xây dựng dashboard web.
+
+### 1.2. Phân chia Task qua các Sprint (Không chồng chéo)
+
+| Sprint / Tuần | Nhiệm vụ của **Dev A (Backend & AI)** | Nhiệm vụ của **Dev B (Frontend & Web)** | Điểm Giao Thoa (Integration Point) |
 |---|---|---|---|
-| **Auth & Profile** | ✍️ Code CRUD backend mẫu | 📱 Màn hình Login/OTP/Profile | 🔧 Firebase config, verify token |
-| **Booking đa điểm** | ✍️ API Order + Pricing engine | 📱 Màn hình tạo đơn + tìm xe | 🔧 Vietmap autocomplete, caching |
-| **Bản đồ + Tracking** | ✍️ WebSocket manager + Redis Pub/Sub | 📱 flutter_map + marker tracking | 🔧 GPS insert TimescaleDB, geofence |
-| **AI ETA (XGBoost)** | ✍️ Model training pipeline + API wrapper | 📱 Hiển thị ETA countdown | 🔧 Train model, data pipeline |
-| **OR-Tools VRP** | ✍️ Celery worker OR-Tools solve | 📱 UI đề xuất ghép đơn | 🔧 Ràng buộc tối ưu, cost matrix |
-| **Thanh toán VietQR** | ✍️ Endpoint gen VietQR | 📱 Màn hình QR + hướng dẫn | 🔧 NAPAS format validation |
-| **Fleet Dashboard** | ✍️ API Dashboard, aggregation queries | 🖥️ Flutter Web charts UI | 🔧 DB aggregation, cache |
-| **Notifications** | ✍️ FCM dispatch + lưu lịch sử | 📱 Notification listener + deep link | 🔧 Firebase Cloud Messaging config |
-
-### 1.2. AI Agent có thể làm gì?
-AI Agent có thể **code gần như toàn bộ backend và khung frontend** (Boilerplate CRUD, schema, models, service logic, bussiness logic viết rõ), nhưng:
-- **Có thể tự động:** API CRUD, Pydantic schemas, SQLAlchemy models, unit test mẫu, Dockerfile, GitHub Actions, routing, BLoC boilerplate.
-- **Cần con người kiểm tra:** Thiết kế UI/UX thực tế (màu sắc, layout trên app), fine-tune model AI (XGBoost cần data thật), config tài khoản API Vietmap/Firebase, kiểm thử manual trên thiết bị thật.
-- **Tuyệt đối không:** Đẩy API key/secret lên public repo (luôn dùng `.env` và cung cấp file `.env.example`).
-
-### 1.3. Ngôn ngữ và coding style
-- **Backend:** Python 3.11+, FastAPI, SQLAlchemy 2.0 (async), Pydantic v2, Black formatter (88 chars).
-- **Frontend:** Dart 3.x, Flutter 3.x, flutter_bloc, flutter_map, Dio, JSON serialization.
-- **Code comments:** Viết docstring (Google style) cho mọi service/public function.
-- **Commit message:** Tiếng Việt (kèm emoji prefix): `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`.
-- **Import ordering:** Standard library → Third-party → Local.
+| **Sprint 1**<br>(Tuần 1 - 2)<br>*Setup & Auth* | - Setup FastAPI skeleton, Docker Compose.<br>- Khởi tạo DB Schema (Alembic Migrations).<br>- Tích hợp Firebase Auth Admin SDK (Verify JWT Token).<br>- Viết API: Đăng nhập OTP, Google SSO, Profile. | - Khởi tạo Flutter Project (Clean Architecture skeleton).<br>- Tích hợp Firebase SDK (Auth, Phone login, Google Sign-in).<br>- Code giao diện Auth (Splash, Phone OTP, Google Login, Role Select). | **API Contract `/auth/*`**<br>Dev B dùng token sinh từ Firebase gửi lên API `/auth/verify` của Dev A để tạo session. |
+| **Sprint 2**<br>(Tuần 3 - 5)<br>*Core CRUD & File* | - Viết API quản lý xe (Vehicles) & tài xế (Drivers).<br>- Viết API quản lý Giấy tờ (upload file lên Local Storage).<br>- Viết API Đặt đơn hàng (Orders) và các Stops.<br>- Setup Postgres triggers tự động audit log trạng thái. | - Code giao diện đăng ký tài xế (Upload hình GPLX, Cà vẹt, ảnh xe).<br>- Code giao diện Shipper: Đặt đơn đa điểm (Vietmap Autocomplete), nhập thông số hàng.<br>- Quản lý state UI bằng Bloc/Cubit. | **API Contract `/drivers/*`, `/orders/*`**<br>Tích hợp file upload (Multipart form) và API đặt đơn hàng đa điểm. |
+| **Sprint 3**<br>(Tuần 6 - 8)<br>*Real-time & GIS* | - Setup WebSocket Handler trong FastAPI.<br>- Setup Redis Pub/Sub phục vụ real-time tracking.<br>- Tích hợp Vietmap Routing API phía backend (để tính distance ban đầu).<br>- Tích hợp Redis Geohash lưu vị trí driver. | - Tích hợp `flutter_map` hiển thị bản đồ.<br>- Kết nối WebSocket API lấy location xe.<br>- Viết logic render Marker xe tải di chuyển mượt (Lerp interpolation).<br>- Xử lý offline caching GPS local khi mất mạng. | **WebSocket Protocol & Vietmap Key**<br>Dev A định nghĩa JSON frame WebSocket gửi tọa độ tài xế, Dev B nhận và vẽ route polyline. |
+| **Sprint 4**<br>(Tuần 9 - 10)<br>*AI & Optimization* | - Train model XGBoost dự báo ETA, build API endpoint predict.<br>- Viết Background Worker (Celery/RQ) giải OR-Tools VRP.<br>- Viết API gợi ý đơn ghép dọc đường về (Bids). | - Code màn hình Driver: Nhận đơn, Bản đồ Navigation (vẽ route tránh cấm tải).<br>- Code màn hình popup nhận đơn ghép (Bidding sheet).<br>- Code màn hình ETA đếm ngược. | **API Contract `/eta/predict`, `/bookings/optimize`**<br>Dev B gửi metadata xe lên API để Dev A tính toán route VRP tối ưu và phản hồi. |
+| **Sprint 5**<br>(Tuần 11 - 12)<br>*Thanh toán & Web* | - Viết API VietQR sinh mã QR động (NAPAS specs).<br>- Viết REST API thống kê doanh thu cho Fleet Owner.<br>- Viết API / Notifications push Firebase Cloud Messaging. | - Code UI thanh toán hiển thị VietQR.<br>- Code giao diện Web Portal (Flutter Web) cho Doanh nghiệp: Dashboard charts, Fleet tracking map. | **API Contract `/billing/*`, Web Build**<br>Đồng bộ dữ liệu đối soát QR. Build Flutter Web deploy lên Docker. |
+| **Sprint 6**<br>(Tuần 13)<br>*Bugfix & Deploy* | - Deploy production trên VPS Ubuntu.<br>- Cấu hình Nginx, SSL Let's Encrypt.<br>- Load test WebSocket (100 concurrents). | - Build APK/IPA release.<br>- Viết tài liệu hướng dẫn sử dụng.<br>- Test tổng thể luồng đi (End-to-End). | **System Integration**<br>Trỏ Flutter client trỏ IP/domain thật của VPS Dev A host. |
 
 ---
 
-## 2. GIT BRANCHING STRATEGY (GitHub Flow mở rộng)
+## 2. CẤU TRÚC THƯ MỤC CODE (CODEBASE LAYOUT)
+
+Để AI Agent tự động code mà không sinh ra file rác hoặc nhầm folder, cấu trúc thư mục toàn dự án được chuẩn hóa như sau:
+
+### 2.1. Backend (FastAPI Layered Architecture)
+Nằm trong thư mục `/backend`. Sử dụng kiến trúc phân lớp hướng dịch vụ (Router-Service-Repository).
 
 ```
-main (production-ready)
-  └── dev (integration branch)
-        ├── feature/auth               ← AI Agent hoặc Dev 1
-        ├── feature/booking            ← AI Agent
-        ├── feature/tracking           ← AI Agent
-        ├── feature/eta-model          ← Dev 2
-        ├── feature/vrp                ← Dev 2
-        ├── feature/payment            ← AI Agent
-        ├── feature/dashboard          ← AI Agent
-        ├── fix/issue-xxx              ← Hotfix
-        └── docs/xxx                   ← Tài liệu
+backend/
+├── app/
+│   ├── api/                    # API Routing Layer
+│   │   ├── deps.py             # Dependency Injection (Auth, DB session)
+│   │   └── v1/
+│   │       ├── auth.py         # /auth endpoints
+│   │       ├── bookings.py     # /bookings endpoints
+│   │       ├── drivers.py      # /drivers endpoints
+│   │       ├── payments.py     # /payments endpoints
+│   │       └── websocket.py    # WebSocket connection manager
+│   ├── core/                   # Cấu hình hệ thống
+│   │   ├── config.py           # Đọc file env qua Pydantic Settings
+│   │   ├── security.py         # JWT tokens & Password hashing
+│   │   └── database.py         # Kết nối Async SQLAlchemy engine
+│   ├── models/                 # Database Models (SQLAlchemy ORM)
+│   │   ├── user.py
+│   │   ├── order.py
+│   │   ├── driver.py
+│   │   └── payment.py
+│   ├── schemas/                # Data Validation (Pydantic Schemas)
+│   │   ├── user.py
+│   │   ├── order.py
+│   │   ├── driver.py
+│   │   └── payment.py
+│   ├── repositories/           # Database Queries (CRUD)
+│   │   ├── base.py
+│   │   ├── user_repo.py
+│   │   └── order_repo.py
+│   ├── services/               # Business Logic & Third Party APIs
+│   │   ├── vietmap.py          # Gọi API Vietmap
+│   │   ├── weather.py          # Gọi API OpenWeather
+│   │   └── dynamic_pricing.py  # Tính tiền tự động
+│   ├── workers/                # Background Tasks (Celery / RQ)
+│   │   ├── tasks.py
+│   │   └── vrp_solver.py       # Giải thuật OR-Tools VRP
+│   ├── ml/                     # Machine Learning Models
+│   │   ├── model.py            # Predictor XGBoost
+│   │   └── train.py            # Script train offline
+│   └── main.py                 # FastAPI Entrypoint
+├── migrations/                 # Alembic Database Migrations
+├── tests/                      # Unit & Integration Tests (Pytest)
+├── Dockerfile
+├── requirements.txt
+└── alembic.ini
 ```
 
-### Quy tắc:
-1. **Không bao giờ commit trực tiếp lên `main`** (trừ tài liệu Markdown).
-2. Mỗi tính năng mới tạo nhánh từ `dev`:
-   ```bash
-   git checkout dev
-   git pull origin dev
-   git checkout -b feature/booking
-   ```
-3. Khi hoàn thành, tạo Pull Request vào `dev` và gán cho người kia review.
-4. Merge `dev` vào `main` khi đã chạy ổn định (khoảng 1 tuần/lần).
-5. AI Agent không tự động merge PR — phải có người approve.
-
-### AI Agent Guardrails (quy tắc cho AI khi code):
-1. **Đọc file trước khi edit:** Không bao giờ viết lại toàn bộ file nếu chỉ cần sửa một đoạn.
-2. **Không hardcode secrets:** Luôn dùng `os.getenv()` hoặc cấu hình từ file `.env`.
-3. **Chạy linter trước khi kết luận:** Backend: `black . && flake8`. Frontend: `dart analyze`.
-4. **Commit nhỏ, tập trung:** Mỗi commit chỉ nên chứa 1 tính năng/logic duy nhất.
-5. **Không xoá code của người khác:** Nếu cần thay đổi logic, ưu tiên thêm mới thay vì sửa/xoá code người khác đã viết.
-
----
-
-## 3. QUY TRÌNH VIẾT CODE (CODING WORKFLOW)
+### 2.2. Frontend (Flutter Clean Architecture simplified)
+Nằm trong thư mục `/frontend`. Chia code theo tính năng (features), mỗi feature chia 3 lớp: data, domain, presentation.
 
 ```
-1. Lấy task từ danh sách
-       │
-2. Tạo nhánh Git: feature/[tên tính năng]
-       │
-3. Đọc docs liên quan (SRS, API Contract, ERD)
-       │
-4. AI Agent viết code (Backend: route → schema → service → test)
-   (Dev: Frontend: BLoC → page → widget → test)
-       │
-5. Chạy kiểm tra tại chỗ:
-   ├── Backend:  black && flake8 && pytest
-   └── Frontend: dart format && dart analyze && flutter test
-       │
-6. Nếu OK → git add, commit, push
-   Nếu lỗi → sửa, quay lại bước 5
-       │
-7. Mở Pull Request vào dev → tag người kia review
-```
-
-### Checklist trước khi commit:
-- [ ] Linter pass (`black`, `flake8`, `dart analyze`)
-- [ ] Unit tests pass (`pytest`, `flutter test`)
-- [ ] Không có secret/API key trong code
-- [ ] Đã test thủ công với Swagger UI (backend) hoặc hot reload (frontend)
-- [ ] import không dư thừa (kiểm tra bằng `autoflake`)
-
----
-
-## 4. QUY TẮC ĐẶT TÊN & CODE CONVENTION
-
-### Backend (Python)
-| Quy tắc | Ví dụ |
-|---|---|
-| Tên file: snake_case | `order_service.py`, `vietmap_client.py` |
-| Tên class: PascalCase | `OrderService`, `AuthRepository` |
-| Tên function: snake_case | `get_nearby_drivers()`, `calculate_price()` |
-| Tên biến: snake_case | `total_price`, `driver_list` |
-| Tên route: lowercase + dash | `/api/v1/nearby-drivers` |
-| Tên DB model: singular PascalCase | `class OrderStop(Base)` |
-| Tên Pydantic schema: suffix + Read/Create/Update | `OrderCreate`, `OrderRead`, `OrderUpdate` |
-
-### Frontend (Dart)
-| Quy tắc | Ví dụ |
-|---|---|
-| Tên file: snake_case | `login_page.dart`, `booking_bloc.dart` |
-| Tên class: PascalCase | `LoginPage`, `BookingBloc` |
-| Tên function/method: camelCase | `onSubmit()`, `loadOrders()` |
-| Tên biến: camelCase | `totalPrice`, `driverList` |
-| Tên BLoC Event: PascalCase | `class LoadOrders extends BookingEvent` |
-| Tên BLoC State: PascalCase | `class BookingLoaded extends BookingState` |
-| Import package ordering: std → third → local | |
-
----
-
-## 5. PHỐI HỢP REAL-TIME (COORDINATION BETWEEN TWO DEVS)
-
-Vì dự án có 2 người làm song song, cần tránh conflict code:
-
-### Quy tắc không conflict:
-| Dev 1 (Frontend) | Dev 2 (Backend + AI) |
-|---|---|
-| Chỉ chỉnh sửa trong `leopard-frontend/` | Chỉ chỉnh sửa trong `leopard-backend/` |
-| Models mock data (Dart) khi backend chưa xong | Service dùng Pydantic test backend logic |
-| Giao tiếp qua API Contract (đã có) | Luôn giữ API Contract cập nhật |
-
-### Khi AI Agent can thiệp:
-AI Agent có thể code cả backend lẫn frontend. Nếu AI đang code backend, Dev 2 không sửa cùng file đó cùng lúc. Luôn **pull mới nhất** từ `dev` trước khi bắt đầu làm việc:
-
-```bash
-git checkout dev
-git pull origin dev
-git checkout -b feature/my-feature
+frontend/
+├── assets/                     # Images, Fonts, Configs
+├── lib/
+│   ├── core/                   # Shared Code & Utilities
+│   │   ├── network/            # HTTP Client (Dio), WebSocket Client
+│   │   ├── theme/              # Colors, Text Styles
+│   │   └── utils/              # Helper functions
+│   ├── features/               # Modules chức năng độc lập
+│   │   ├── auth/               # Đăng nhập, Profile
+│   │   ├── booking/            # Tạo đơn, Chọn xe, Thanh toán
+│   │   ├── tracking/           # Bản đồ tracking realtime, chat
+│   │   └── fleet_dashboard/    # Dashboard cho web
+│   │       # Mỗi feature chứa 3 lớp (simplified):
+│   │       ├── data/           # Models, DataSources (gọi API)
+│   │       ├── domain/         # Repositories Interface, UseCases
+│   │       └── presentation/   # BLoC/Cubit, Pages, Widgets UI
+│   ├── main.dart               # Flutter Entrypoint
+│   └── app.dart                # MaterialApp & Routing config
+├── test/                       # Unit & Widget Tests
+├── pubspec.yaml
+└── web/                        # Flutter Web index template
 ```
 
 ---
 
-## 6. THIẾT LẬP MÔI TRƯỜNG PHÁT TRIỂN (DEVELOPMENT SETUP)
+## 3. QUY TRÌNH PHÁT TRIỂN VỚI AI & GIT (AI-ASSISTED GIT WORKFLOW)
 
-### Lần đầu chạy:
-```bash
-# Backend
-cd leopard-backend
-cp ../.env.example ../.env    # Điền API keys thật vào .env
-python -m venv .venv
-source .venv/bin/activate  # (Windows: .venv\Scripts\activate)
-pip install -r requirements.txt
-cp ../docker-compose.yml ../docker-compose.yml
-# Chạy DB + Redis
-docker compose up -d postgres redis
-# Alembic migrations
-alembic upgrade head
-# Seed data
-python scripts/seed_users.py
-# Khởi động backend
-uvicorn app.main:app --reload
+Quy tắc này bắt buộc cả 2 lập trình viên và AI Agent phải tuân thủ để tránh xung đột mã nguồn.
 
-# Frontend
-cd ../leopard-frontend
-flutter pub get
-flutter run
-```
+### 3.1. Phân nhánh Git (Branching Strategy)
+- **`main`**: Nhánh ổn định cao nhất, chỉ chứa code đã qua test và có thể chạy được trên production server.
+- **`dev`**: Nhánh tích hợp chính. Mọi dev branch đều checkout từ `dev` và merge ngược lại `dev` thông qua Pull Request.
+- **`feature/xxx`**: Nhánh phát triển tính năng mới (ví dụ: `feature/auth-otp`, `feature/vietmap-routing`).
+- **`bugfix/xxx`**: Nhánh sửa lỗi phát sinh khẩn cấp.
 
-### Hàng ngày:
-```bash
-# Luôn bắt đầu bằng pull dev mới nhất
-git checkout dev && git pull origin dev
-
-# Chạy DB nếu chưa chạy
-docker compose up -d postgres redis
-
-# Code...
-# Khi xong, test
-cd leopard-backend && black . && flake8 && pytest
-cd ../leopard-frontend && dart analyze && flutter test
-
-git push origin feature/my-feature
-# Mở PR trên GitHub
-```
+### 3.2. Luồng làm việc với AI Agent (AI Agent Guardrails)
+Khi gọi AI Agent thực hiện một task, dev phải yêu cầu agent tuân thủ:
+1. **Locate first:** Luôn định vị file cần sửa bằng tool `search_files` trước khi edit, không tự tạo file trùng lặp.
+2. **Minimally invasive:** Chỉ patch (`patch` tool) những dòng cần thiết. Không dùng `write_file` để ghi đè cả file lớn trừ khi file đó hoàn toàn mới.
+3. **Local Lint & Test:**
+   - Với Backend: Chạy linter (`flake8 .` hoặc `black --check .`) và pytest trước khi commit.
+   - Với Frontend: Chạy `flutter analyze` và `flutter test` trước khi commit.
+4. **Commit Msg:** Commit message bắt buộc sử dụng Conventional Commit (ví dụ: `feat(auth): add google login endpoint`).
 
 ---
 
-## 7. XỬ LÝ TÌNH HUỐNG (TROUBLESHOOTING)
+## 4. TỰ ĐỘNG HÓA KIỂM THỬ (CI/CD PIPELINE WORKFLOW)
 
-| Tình huống | Hành động |
-|---|---|
-| DB migration conflict | `alembic merge heads` tạo merge migration |
-| Redis bị đầy bộ nhớ | `docker compose restart redis` (hoặc xoá `leopard_redis_data` volume) |
-| Conflict Git khi merge | Git merge conflict → mở file conflict → giữ code của cả 2 → commit |
-| AI Agent code sai logic | Revert commit cuối: `git revert HEAD` rồi báo AI sửa |
-| Cần test với data thật | Chạy script `seed_gps_tracking.py` để sinh 1000 GPS points fake |
-| API Key hết hạn | Kiểm tra `.env` → cập nhật key mới → `docker compose restart backend` |
+Để đảm bảo code không bị lỗi khi merge, chúng ta dùng GitHub Actions chạy tự động.
 
----
+### 4.1. File cấu hình CI Backend (`.github/workflows/backend-ci.yml`)
 
-## 8. HƯỚNG DẪN SỬ DỤNG AI HIỆU QUẢ
+```yaml
+name: Backend CI (FastAPI)
 
-### Prompt template chuẩn khi yêu cầu AI Agent code:
+on:
+  push:
+    branches: [ main, dev ]
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches: [ main, dev ]
+    paths:
+      - 'backend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest httpx flake8 black
+
+      - name: Lint with flake8 (Syntax check)
+        run: |
+          cd backend
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Run Pytest
+        run: |
+          cd backend
+          pytest
 ```
-## Task
-Viết [chức năng gì] trong [backend/frontend]
 
-## Context
-- File liên quan: [đường dẫn]
-- ERD table: [tên bảng]
-- API endpoint: [method + path]
-- Acceptance Criteria: [từ SRS]
-- Docstring mẫu: ...
+### 4.2. File cấu hình CI Frontend (`.github/workflows/frontend-ci.yml`)
 
-## Yêu cầu cụ thể
-1. [yêu cầu 1]
-2. [yêu cầu 2]
+```yaml
+name: Frontend CI (Flutter)
 
-## Constraint
-- Không hardcode secret
-- Dùng async/await
-- Viết unit test kèm theo
+on:
+  push:
+    branches: [ main, dev ]
+    paths:
+      - 'frontend/**'
+  pull_request:
+    branches: [ main, dev ]
+    paths:
+      - 'frontend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Java (For Flutter build dependencies)
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          flutter pub get
+
+      - name: Run Flutter Analyze (Linter)
+        run: |
+          cd frontend
+          flutter analyze
+
+      - name: Run Flutter Test (Unit tests)
+        run: |
+          cd frontend
+          flutter test
 ```
-
-### Khi nào gọi AI Agent:
-- **Nên gọi:** CRUD boilerplate, schema/model generation, test writing, tài liệu, simple service logic (pricing, validation).
-- **Không nên gọi (tự làm):** Design UI layout, fine-tune ML model, config complex DevOps (Firebase project setup), quyết định kiến trúc.
-
----
-
-## 9. REFERENCES
-
-- [SRS](./srs.md) — Yêu cầu chức năng chi tiết
-- [API Contract](./api-contract.md) — REST + WebSocket endpoints
-- [ERD](./erd.md) — Database schema
-- [Architecture Design](./architecture-design.md) — C4 diagrams, folder structure
-- [Project Plan](./project-plan.md) — Milestones, timeline, risk register, budget
-- [Test Plan](./test-plan.md) — Testing strategy, CI/CD

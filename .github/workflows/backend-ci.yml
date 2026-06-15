@@ -1,0 +1,72 @@
+name: Backend CI (FastAPI)
+
+on:
+  push:
+    branches: [ main, dev ]
+    paths:
+      - "backend/**"
+  pull_request:
+    branches: [ main, dev ]
+    paths:
+      - "backend/**"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_DB: leopard_test
+          POSTGRES_USER: leopard
+          POSTGRES_PASSWORD: test_password_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7.2-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio httpx flake8 black
+
+      - name: Lint with flake8
+        run: |
+          cd backend
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Run Pytest
+        env:
+          DATABASE_URL: "postgresql+asyncpg://leopard:test_password_ci@localhost:5432/leopard_test"
+          DATABASE_URL_SYNC: "postgresql://leopard:test_password_ci@localhost:5432/leopard_test"
+          REDIS_URL: "redis://localhost:6379/0"
+          SECRET_KEY: "test-ci-secret-key-not-for-production"
+          ENVIRONMENT: "test"
+        run: |
+          cd backend
+          pytest --tb=short -q
