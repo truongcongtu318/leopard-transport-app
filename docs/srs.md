@@ -110,6 +110,18 @@ Hệ thống LEOPARD phục vụ 4 nhóm đối tượng chính:
   3. Cho phép nhập mã OTP gồm 6 chữ số. Có cơ chế cooldown 60 giây trước khi yêu cầu gửi lại OTP.
   4. Nếu số điện thoại chưa tồn tại trong DB, chuyển hướng sang màn hình cập nhật Profile cơ bản (Họ tên, Vai trò).
 
+#### User Story 1.1b: Đăng nhập nhanh bằng tài khoản Google (OAuth)
+- **Là** một khách hàng cá nhân hoặc doanh nghiệp (Shipper),
+- **Tôi muốn** đăng nhập nhanh vào ứng dụng bằng tài khoản Google sẵn có của mình trên điện thoại/web,
+- **Để** tôi không phải nhập số điện thoại hoặc mã OTP thủ công.
+
+- **Tiêu chí nghiệm thu (Acceptance Criteria):**
+  1. Tích hợp nút "Đăng nhập bằng Google" (Google Sign-In) trên màn hình Auth.
+  2. Tích hợp Firebase Auth Google Provider trên cả Flutter Mobile và Flutter Web.
+  3. Thời gian hoàn thành flow authentication (từ khi chọn tài khoản Google đến khi chuyển hướng vào màn hình chính) < 3 giây.
+  4. Tự động trích xuất: Họ tên, Email, Avatar URL từ tài khoản Google để điền vào profile của user trong DB.
+  5. Đối với tài xế, bắt buộc phải dùng Số điện thoại (OTP SMS) để định danh chính xác, không dùng Google Sign-In độc lập. Nếu đăng ký vai trò Driver từ Google Auth, hệ thống sẽ yêu cầu verify số điện thoại ở bước tiếp theo.
+
 #### User Story 1.2: Cung cấp giấy tờ pháp lý của tài xế
 - **Là** một tài xế xe tải lớn đăng ký hoạt động trên app,
 - **Tôi muốn** chụp ảnh và upload các giấy tờ bắt buộc gồm: Giấy phép lái xe (GPLX), Cà-vẹt xe, Giấy đăng kiểm xe và bảo hiểm dân sự,
@@ -230,20 +242,51 @@ Luồng đặt đơn hàng (Booking Flow):
 
 ---
 
-### 3.8. Dashboard Quản lý Đội xe Doanh nghiệp (Enterprise Portal)
+---
 
-#### User Story 8.1: Theo dõi hiệu suất đội xe doanh nghiệp
-- **Là** một quản lý đội xe xây dựng SME có 10 chiếc xe tải,
-- **Tôi muốn** truy cập giao diện web dashboard để quản lý danh sách xe, tài xế, xem tổng số km đã chạy, doanh thu tích lũy và hiệu suất tận dụng tải xe (utilization rate),
-- **Để** tôi tối ưu hóa hoạt động kinh doanh và đối soát tài chính hàng tháng.
+### 3.8. Phân hệ Thông báo & Tin nhắn (Notifications & Chat)
+
+#### User Story 8.1: Nhận thông báo đẩy khi trạng thái đơn hàng thay đổi
+- **Là** một shipper đã đặt hàng hoặc một tài xế đã nhận đơn,
+- **Tôi muốn** nhận thông báo đẩy (Push Notification) tức thời qua điện thoại khi có sự kiện quan trọng như: Có tài xế nhận đơn, Hàng đã đến nơi, Thanh toán thành công,
+- **Để** tôi không cần phải mở app liên tục kiểm tra trạng thái.
 
 - **Tiêu chí nghiệm thu (Acceptance Criteria):**
-  1. Giao diện Web hiển thị các biểu đồ (Charts) thống kê:
-     - Doanh thu theo ngày/tuần/tháng (Bar chart).
-     - Tỷ lệ km chạy rỗng vs km chạy có hàng (Pie chart).
-     - Trạng thái đội xe (Bao nhiêu xe đang rảnh, đang chạy, đang bảo dưỡng).
-  2. Cho phép xuất file Excel báo cáo chuyến đi của đội xe.
-  3. Hỗ trợ phân quyền truy cập: Fleet Owner (Xem toàn bộ, quản lý tài xế), Driver (Chỉ xem chuyến đi cá nhân).
+  1. Tích hợp Firebase Cloud Messaging (FCM) cho cả Flutter (Android, iOS) và Flutter Web.
+  2. Danh sách sự kiện gửi thông báo: `order_assigned`, `driver_arrived`, `order_picked_up`, `order_delivered`, `payment_received`, `document_approved`, `document_rejected`, `document_expiring_soon`.
+  3. Mỗi thông báo khi nhấn vào phải Deep Link đến màn hình chi tiết tương ứng trong app (ví dụ: click "Tài xế đã đến điểm lấy hàng" → mở màn hình tracking order).
+  4. Lưu lịch sử thông báo trong bảng `notifications` của PostgreSQL để user có thể xem lại các thông báo đã nhận.
+  5. Hỗ trợ tắt/bật thông báo theo từng loại sự kiện trong Settings.
+
+#### User Story 8.2: Gửi tin nhắn nhanh giữa shipper và tài xế trong chuyến đi
+- **Là** một tài xế đang vận chuyển hàng,
+- **Tôi muốn** có thể gọi điện và nhắn tin nhanh trực tiếp với shipper trong app (không lộ số điện thoại cá nhân),
+- **Để** tôi thông báo tình huống phát sinh (kẹt xe, tìm địa chỉ...) mà không làm lộ thông tin liên lạc cá nhân.
+
+- **Tiêu chí nghiệm thu (Acceptance Criteria):**
+  1. Tính năng **Gọi điện ẩn danh (Anonymous Call)** dùng Firebase Callable Functions hoặc SIP trunking để che giấu số điện thoại thực.
+  2. Khi tài xế nhấn "Gọi", cuộc gọi được routing qua server, shipper thấy số ảo (không phải số thật của tài xế).
+  3. Tính năng **Chat nhanh (In-app Chat)** lưu trữ trong PostgreSQL (bảng `messages`) hoặc dùng Firebase Realtime Database để real-time sync.
+  4. Lịch sử chat được lưu và xoá sau 30 ngày kể từ khi đơn hàng kết thúc.
+  5. Trong giai đoạn MVP, ưu tiên triển khai **In-app Chat với WebSocket + message persistence**. Tính năng gọi ẩn danh được ghi nhận là cần có phiên bản roadmap sau MVP.
+
+---
+
+### 3.9. Phân hệ Tìm kiếm & Bộ lọc Đơn hàng (Search & Filter)
+
+#### User Story 9.1: Tìm kiếm đơn hàng và tài xế theo nhiều tiêu chí
+- **Là** một tài xế muốn tìm đơn hàng phù hợp với xe của mình,
+- **Tôi muốn** xem danh sách đơn hàng đang chờ và lọc theo các tiêu chí: loại xe yêu cầu, khoảng cách từ vị trí hiện tại, khoảng giá, điểm lấy hàng,
+- **Để** tôi nhanh chóng chọn được đơn hàng phù hợp nhất với năng lực xe của mình.
+
+- **Tiêu chí nghiệm thu (Acceptance Criteria):**
+  1. Màn hình Tìm kiếm đơn hàng (Shipper Side: tìm tài xế / Driver Side: tìm đơn) hỗ trợ tối thiểu 3 bộ lọc:
+     - **Loại xe:** Xe ba gác, Xe tải < 2 tấn, 2-5 tấn, 5-10 tấn, > 10 tấn.
+     - **Khoảng cách:** < 5km, 5-10km, 10-20km, > 20km từ vị trí hiện tại (dùng PostGIS spatial query).
+     - **Khoảng giá:** (Shipper đặt) hoặc (Tài xế đặt giá chào).
+  2. Kết quả hiển thị dạng danh sách + bản đồ (map với markers các đơn/xe khả dụng).
+  3. Thời gian load kết quả tìm kiếm đầu tiên < 2 giây trên mạng 4G.
+  4. Cache kết quả tìm kiếm trên Redis với TTL 30 giây để tránh gọi DB liên tục.
 
 ---
 
