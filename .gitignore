@@ -58,6 +58,13 @@ htmlcov/
 *.jks
 *.keystore
 
+# Hermes Agent
+.hermes/
+
+# Project PRD & Documents (giữ source code, bỏ document PDF)
+LEOPARD - KẾT NỐI VẬN TẢI HÀNG HÓA TRỌNG TẢI LỚN.md
+LEOPARD - KẾT NỐI VẬN TẢI HÀNG HÓA TRỌNG TẢI LỚN.pdf
+
 # Databases & Caching
 /data/pgdata/
 /data/redis/
