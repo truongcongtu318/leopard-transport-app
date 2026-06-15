@@ -1,0 +1,51 @@
+[project]
+name = "leopard-backend"
+version = "0.1.0"
+description = "LEOPARD - Freight Transport Platform Backend for Vietnam"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "LEOPARD Team"}
+]
+keywords = ["logistics", "freight", "transport", "vietnam"]
+
+[project.urls]
+Homepage = "https://leopard.vn"
+Repository = "https://github.com/leopard-vn/leopard-backend"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | __pycache__
+  | alembic
+)/
+'''
+
+[tool.flake8]
+max-line-length = 100
+exclude = [".git", "__pycache__", ".venv", "alembic/versions"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+plugins = ["sqlalchemy.ext.mypy.plugin"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "-v --cov=app --cov-report=term-missing --cov-report=xml"
